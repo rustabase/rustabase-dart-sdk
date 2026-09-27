@@ -3,6 +3,31 @@ import "dart:convert";
 import "../types.dart";
 import "token.dart";
 
+/// Formats [value] as an IMF-fixdate (e.g. "Sun, 06 Nov 1994 08:49:37 GMT"),
+/// the only date format browsers accept in cookie Expires attributes.
+String httpDate(DateTime value) {
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  final utc = value.toUtc();
+  String two(int part) => part.toString().padLeft(2, "0");
+  return "${weekdays[utc.weekday - 1]}, ${two(utc.day)} "
+      "${months[utc.month - 1]} ${utc.year} "
+      "${two(utc.hour)}:${two(utc.minute)}:${two(utc.second)} GMT";
+}
+
 class SessionSnapshot {
   const SessionSnapshot({this.token = "", this.record});
 
@@ -63,7 +88,7 @@ class SessionCookieCodec {
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     final attributes = <String>[
       "Path=$path",
-      "Expires=${expiresAt.toUtc().toIso8601String()}",
+      "Expires=${httpDate(expiresAt)}",
       if (secure) "Secure",
       if (httpOnly) "HttpOnly",
       "SameSite=$sameSite",
