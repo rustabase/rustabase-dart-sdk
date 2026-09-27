@@ -14,10 +14,16 @@ class Files {
     String? token,
     Json query = const {},
   }) {
-    final collection = record?["collectionId"] ?? record?["collectionName"];
-    final recordId = record?["id"]?.toString();
+    final collection = (record?["collectionId"] ?? record?["collectionName"])
+        ?.toString()
+        .trim();
+    final recordId = record?["id"]?.toString().trim();
     filename = filename.trim();
-    if (filename.isEmpty || recordId == null || collection == null) return "";
+    if (filename.isEmpty ||
+        recordId == null ||
+        recordId.isEmpty ||
+        collection == null ||
+        collection.isEmpty) return "";
     return withQuery(
       rb.url(
         "/api/files/${seg(collection.toString())}/${seg(recordId)}/${seg(filename)}",

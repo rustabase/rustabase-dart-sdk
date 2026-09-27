@@ -175,4 +175,74 @@ void main() {
     expect(body, contains("@jsonPayload"));
     expect(body, contains('"method":"POST"'));
   });
+
+  group("fixes", () {
+    test("cookie Expires uses the HTTP date format", () {
+      final session = MemorySession()
+        ..set(token({"exp": 4102444800}), {"id": "u1"});
+      final cookie = session.toCookie(secure: false, httpOnly: false);
+      expect(cookie, contains("Expires=Fri, 01 Jan 2100 00:00:00 GMT"));
+    });
+
+    test("malformed UTF-8 response bodies decode instead of throwing",
+        () async {
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient(
+          (_) async => http.Response.bytes([0x61, 0xFF, 0x62], 200),
+        ),
+      );
+      expect(await rb.request<Object?>("/x"), isA<String>());
+    });
+
+    test("wrapping an error fills in a missing url", () {
+      final original = RustaBaseError(status: 500);
+      final wrapped = RustaBaseError.from(original, url: "https://x.test/y");
+      expect(wrapped.url, "https://x.test/y");
+      expect(wrapped.status, 500);
+      expect(identical(RustaBaseError.from(wrapped), wrapped), true);
+    });
+
+    test("file urls reject blank record ids and collections", () {
+      final rb = createClient("https://example.test");
+      expect(rb.files.url({"id": " ", "collectionName": "posts"}, "a.png"), "");
+      expect(rb.files.url({"id": "p1", "collectionName": " "}, "a.png"), "");
+    });
+
+    test("batches clear queued steps after a successful send", () async {
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient(
+          (_) async => http.Response('[{"status":200,"body":{}}]', 200),
+        ),
+      );
+      final batch = rb.batch();
+      batch.from("posts").create({"title": "A"});
+      await batch.send();
+      expect(batch.size, 0);
+      batch.from("posts").create({"title": "B"});
+      batch.clear();
+      expect(batch.size, 0);
+    });
+
+    test("async sessions keep saving after a failed write", () async {
+      var calls = 0;
+      final session = AsyncSession(
+        save: (value) async {
+          calls++;
+          if (calls == 1) throw StateError("disk full");
+        },
+      );
+      session.set("first", null);
+      session.set("second", null);
+      await Future<void>.delayed(Duration.zero);
+      expect(calls, 2);
+    });
+
+    test("loading a cookie with bad percent-encoding clears the session", () {
+      final session = MemorySession()..set("tok", {"id": "u1"});
+      session.loadCookie("rb_session=%E0%A4%A");
+      expect(session.token, "");
+    });
+  });
 }
