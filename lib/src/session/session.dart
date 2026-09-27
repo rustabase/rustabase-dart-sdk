@@ -43,6 +43,9 @@ class Session {
       set(restored.token, restored.record);
     } on FormatException {
       clear();
+    } on ArgumentError {
+      // Malformed percent-encoding in the cookie value.
+      clear();
     }
   }
 
