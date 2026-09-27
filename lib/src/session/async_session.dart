@@ -26,15 +26,17 @@ class AsyncSession extends Session {
   void set(String token, [Map<String, dynamic>? record]) {
     super.set(token, record);
     final data = SessionSnapshot(token: token, record: record).serialize();
-    _queue = _queue.then((_) async => save(data));
+    // A failed save must not poison the queue: swallow the previous error so
+    // later writes still run in order.
+    _queue = _queue.catchError((_) {}).then((_) async => save(data));
   }
 
   @override
   void clear() {
     super.clear();
     final clear = clearStorage;
-    _queue = _queue.then(
-      (_) async => clear != null ? clear() : save(""),
-    );
+    _queue = _queue.catchError((_) {}).then(
+          (_) async => clear != null ? clear() : save(""),
+        );
   }
 }
