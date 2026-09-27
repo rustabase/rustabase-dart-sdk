@@ -1,0 +1,15 @@
+name: Feature request
+description: Propose an improvement to the RustaBase Dart SDK.
+title: "feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Use case
+      description: Explain the problem this change would solve.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed API
+      description: Show how the feature could look in Dart code.
