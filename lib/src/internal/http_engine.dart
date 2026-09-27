@@ -91,7 +91,7 @@ class HttpEngine {
     if (bytes.isEmpty) {
       return <String, dynamic>{};
     }
-    final text = utf8.decode(bytes);
+    final text = utf8.decode(bytes, allowMalformed: true);
     try {
       return jsonDecode(text);
     } on FormatException {
