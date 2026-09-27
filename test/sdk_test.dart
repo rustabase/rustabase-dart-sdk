@@ -1,0 +1,178 @@
+import "dart:convert";
+
+import "package:http/http.dart" as http;
+import "package:http/testing.dart";
+import "package:rustabase_dart_sdk/rustabase.dart";
+import "package:test/test.dart";
+
+String token(Map<String, dynamic> claims) =>
+    "x.${base64Url.encode(utf8.encode(jsonEncode(claims))).replaceAll('=', '')}.y";
+
+void main() {
+  group("client", () {
+    test("builds URLs and binds filters", () {
+      final rb = createClient("https://example.test/");
+      expect(rb.url("/api/health"), "https://example.test/api/health");
+      expect(
+        rb.filter("name = {:name} && live = {:live}", {
+          "name": "A",
+          "live": true,
+        }),
+        'name = "A" && live = true',
+      );
+    });
+
+    test("sends auth, language, query, and hooks", () async {
+      late http.Request captured;
+      final session = MemorySession()
+        ..set(token({"exp": 4102444800}), {"id": "u1"});
+      final rb = createClient(
+        "https://example.test",
+        session: session,
+        httpClientFactory: () => MockClient((request) async {
+          captured = request;
+          return http.Response('{"ok":true}', 200);
+        }),
+      );
+      rb.onRequest = (request) =>
+          request.copyWith(headers: {...request.headers, "X-Trace": "1"});
+      rb.onResponse = (_, data) => {
+            ...data as Map<String, dynamic>,
+            "hooked": true,
+          };
+      final result = await rb.request<Json>(
+        "/items",
+        options: const RequestOptions(
+          query: {
+            "tag": ["a", "b"],
+          },
+        ),
+      );
+      expect(captured.url.queryParametersAll["tag"], ["a", "b"]);
+      expect(captured.headers["authorization"], session.token);
+      expect(captured.headers["accept-language"], "en-US");
+      expect(captured.headers["x-trace"], "1");
+      expect(result["hooked"], true);
+    });
+
+    test("normalizes API errors", () async {
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient(
+          (_) async => http.Response(
+            '{"message":"Invalid","data":{"email":{"code":"bad"}}}',
+            400,
+          ),
+        ),
+      );
+      await expectLater(
+        rb.health(),
+        throwsA(
+          isA<RustaBaseError>().having((e) => e.status, "status", 400).having(
+                (e) => e.fieldErrors.containsKey("email"),
+                "fieldErrors",
+                true,
+              ),
+        ),
+      );
+    });
+  });
+
+  test("CRUD and auth mirror JavaScript paths", () async {
+    final requests = <http.Request>[];
+    final rb = createClient(
+      "https://example.test",
+      httpClientFactory: () => MockClient((request) async {
+        requests.add(request);
+        if (request.url.path.endsWith("auth-with-password"))
+          return http.Response(
+            '{"token":"abc","record":{"id":"u1","collectionName":"users"}}',
+            200,
+          );
+        if (request.method == "GET" && request.url.path.endsWith("/records"))
+          return http.Response(
+            '{"page":1,"perPage":30,"totalItems":1,"totalPages":1,"items":[{"id":"p1"}]}',
+            200,
+          );
+        return http.Response('{"id":"p1","title":"Hello"}', 200);
+      }),
+    );
+    expect((await rb.from("posts").list()).items.first["id"], "p1");
+    expect(
+      (await rb.from("posts").create({"title": "Hello"}))["title"],
+      "Hello",
+    );
+    final auth =
+        await rb.auth("users").signInWithPassword("me@example.com", "secret");
+    expect(auth.record["id"], "u1");
+    expect(rb.session.token, "abc");
+    expect(
+      requests.map((r) => r.url.path),
+      contains("/api/collections/users/auth-with-password"),
+    );
+  });
+
+  test("session token helpers and cookies", () {
+    final session = MemorySession();
+    session.set(
+      token({"type": "auth", "collectionId": superusersId, "exp": 4102444800}),
+      {"id": "admin"},
+    );
+    expect(session.isValid, true);
+    expect(session.isSuperuser, true);
+    final cookie = session.toCookie(secure: false, httpOnly: false);
+    final restored = MemorySession()..loadCookie(cookie);
+    expect(restored.token, session.token);
+    expect(restored.record?["id"], "admin");
+  });
+
+  test("large session cookies preserve credentials without oversized records",
+      () {
+    final session = MemorySession();
+    session.set(
+      token({"exp": 4102444800}),
+      {"id": "u1", "profile": List.filled(5000, "x").join()},
+    );
+    final cookie = session.toCookie(secure: false, httpOnly: false);
+    final restored = MemorySession()..loadCookie(cookie);
+    expect(restored.token, session.token);
+    expect(restored.record, isNull);
+  });
+
+  test("async sessions serialize writes in order", () async {
+    final saved = <String>[];
+    final session = AsyncSession(save: (value) async => saved.add(value));
+    session.set("first", {"id": "u1"});
+    session.set("second", {"id": "u2"});
+    await Future<void>.delayed(Duration.zero);
+    expect(saved, hasLength(2));
+    expect(saved.last, contains('"token":"second"'));
+  });
+
+  test("files and batches follow the RustaBase wire protocol", () async {
+    late http.BaseRequest captured;
+    final rb = createClient(
+      "https://example.test",
+      httpClientFactory: () => MockClient((request) async {
+        captured = request;
+        if (request.url.path == "/api/batch")
+          return http.Response('[{"status":200,"body":{"id":"p1"}}]', 200);
+        return http.Response('{"token":"file-token"}', 200);
+      }),
+    );
+    expect(
+      rb.files.url({"id": "p1", "collectionName": "posts"}, "a b.png"),
+      "https://example.test/api/files/posts/p1/a%20b.png",
+    );
+    expect(await rb.files.token(), "file-token");
+    final batch = rb.batch();
+    batch.from("posts").create({"title": "A"});
+    expect(batch.size, 1);
+    expect((await batch.send()).first.status, 200);
+    expect(captured.headers["content-type"], startsWith("multipart/form-data"));
+    expect(captured, isA<http.Request>());
+    final body = (captured as http.Request).body;
+    expect(body, contains("@jsonPayload"));
+    expect(body, contains('"method":"POST"'));
+  });
+}
