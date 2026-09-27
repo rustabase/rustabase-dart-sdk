@@ -107,9 +107,19 @@ class Realtime {
           .listen(
         (line) async {
           if (line.isEmpty) {
-            final payload = data.isEmpty
-                ? <String, dynamic>{}
-                : (jsonDecode(data.toString()) as Map<String, dynamic>);
+            Object? decoded;
+            try {
+              decoded = data.isEmpty ? null : jsonDecode(data.toString());
+            } on FormatException {
+              // Skip malformed event payloads instead of killing the stream.
+              event = "";
+              id = "";
+              data.clear();
+              return;
+            }
+            final payload = decoded is Map
+                ? Map<String, dynamic>.from(decoded)
+                : <String, dynamic>{};
             if (event == rbConnect) {
               clientId = id;
               _retries = 0;
@@ -127,8 +137,12 @@ class Realtime {
           if (line.startsWith("event:")) event = line.substring(6).trim();
           if (line.startsWith("id:")) id = line.substring(3).trim();
           if (line.startsWith("data:")) {
+            // Per the SSE spec, strip at most one leading space; trimming
+            // would corrupt whitespace inside JSON string values.
+            var value = line.substring(5);
+            if (value.startsWith(" ")) value = value.substring(1);
             if (data.isNotEmpty) data.write("\n");
-            data.write(line.substring(5).trim());
+            data.write(value);
           }
         },
         onError: (Object error) {
