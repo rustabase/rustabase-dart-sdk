@@ -19,6 +19,7 @@ class Realtime {
   final Map<String, List<RealtimeCallback>> _topics = {};
   http.Client? _client;
   StreamSubscription<String>? _stream;
+  Timer? _retryTimer;
   bool _closed = false;
   int _retries = 0;
 
@@ -76,6 +77,8 @@ class Realtime {
     final active = _topics.keys.toList();
     _topics.clear();
     _closed = true;
+    _retryTimer?.cancel();
+    _retryTimer = null;
     _stream?.cancel();
     _client?.close();
     _stream = null;
@@ -200,7 +203,9 @@ class Realtime {
     }
     final delay = _retryDelay(_retries);
     _retries++;
-    Timer(delay, () async {
+    _retryTimer?.cancel();
+    _retryTimer = Timer(delay, () async {
+      _retryTimer = null;
       if (!_closed) {
         try {
           await _connect();
