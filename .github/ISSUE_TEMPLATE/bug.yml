@@ -1,0 +1,26 @@
+name: Bug report
+description: Report reproducible SDK behavior that needs correction.
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Describe the expected and actual behavior.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: SDK version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Dart or Flutter version
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Minimal reproduction
+    validations:
+      required: true
