@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: RustaBase documentation
+    url: https://rustabase.com/docs
+    about: Check the product documentation before opening an SDK issue.
