@@ -31,7 +31,17 @@ class RustaBaseError implements Exception {
       data["data"] is Map ? Map<String, dynamic>.from(data["data"] as Map) : {};
 
   factory RustaBaseError.from(Object error, {String url = ""}) {
-    if (error is RustaBaseError) return error;
+    if (error is RustaBaseError) {
+      if (error.url.isNotEmpty || url.isEmpty) return error;
+      return RustaBaseError(
+        message: error.message,
+        url: url,
+        status: error.status,
+        data: error.data,
+        cancelled: error.cancelled,
+        cause: error.cause,
+      );
+    }
     return RustaBaseError(message: error.toString(), url: url, cause: error);
   }
 
