@@ -13,6 +13,9 @@ class Batch {
   int get size => _steps.length;
   BatchTable from(String collection) => BatchTable(this, collection);
 
+  /// Drops all queued writes without sending them.
+  void clear() => _steps.clear();
+
   Future<List<BatchResult>> send({
     RequestOptions options = const RequestOptions(),
   }) async {
@@ -31,6 +34,9 @@ class Batch {
         autoCancel: options.autoCancel,
       ),
     );
+    // The server processed these steps; keeping them would resend duplicates
+    // on the next send().
+    _steps.clear();
     return result
         .map(
           (item) =>
