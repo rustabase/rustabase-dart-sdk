@@ -1,4 +1,4 @@
-name: rustabase_dart_sdk
+name: rustabase
 description: Official multi-platform Dart and Flutter SDK for the RustaBase PostgreSQL backend-as-a-service.
 version: 1.0.0
 homepage: https://rustabase.com
