@@ -1,6 +1,19 @@
+<div align="center">
+
 # RustaBase Dart SDK
 
-Official Dart and Flutter client for [RustaBase](https://rustabase.com). Its API mirrors the RustaBase JavaScript SDK.
+**Official Dart & Flutter client for [RustaBase](https://rustabase.com/): one Rust backend, everything you need.**
+
+[![pub](https://img.shields.io/pub/v/rustabase_dart_sdk?color=0175c2&label=pub.dev)](https://pub.dev/packages/rustabase_dart_sdk)
+[![license](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
+[![JS SDK](https://img.shields.io/npm/v/rustabase?color=f97316&label=js%20sdk)](https://www.npmjs.com/package/rustabase)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-RustaBase-0a66c2?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rustabase)
+
+[Website](https://rustabase.com/) · [JavaScript SDK](https://github.com/rustabase/rustabase-js-sdk) · [npm](https://www.npmjs.com/package/rustabase) · [LinkedIn](https://www.linkedin.com/company/rustabase)
+
+</div>
+
+Works on Flutter (iOS, Android, web, desktop) and pure Dart servers. Its API mirrors the [RustaBase JavaScript SDK](https://github.com/rustabase/rustabase-js-sdk).
 
 This package is independently structured for RustaBase. Shared HTTP paths and payload names belong to the RustaBase wire protocol; its Dart transport, session persistence, retry policy, and tests are package-specific implementations.
 
@@ -118,10 +131,14 @@ Duplicate requests use newest-request-wins semantics by default. Pass `RequestOp
 
 Superuser tools are grouped under `rb.admin`: `collections`, `settings`, `logs`, `backups`, `crons`, `apiKeys`, `webhooks`, `functions`, `rls`, and `sql()`.
 
-## Version 1 API
+## Links
 
-Version 1 establishes the RustaBase API with `from()`, `session`, `batch()`, and `RustaBaseError`.
+- Website: [rustabase.com](https://rustabase.com/)
+- npm: [npmjs.com/package/rustabase](https://www.npmjs.com/package/rustabase)
+- JavaScript SDK: [github.com/rustabase/rustabase-js-sdk](https://github.com/rustabase/rustabase-js-sdk)
+- Dart / Flutter SDK: [github.com/rustabase/rustabase-dart-sdk](https://github.com/rustabase/rustabase-dart-sdk)
+- LinkedIn: [linkedin.com/company/rustabase](https://www.linkedin.com/company/rustabase)
 
 ## License
 
-MIT
+MIT © RustaBase contributors
