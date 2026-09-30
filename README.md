@@ -4,7 +4,7 @@
 
 **Official Dart & Flutter client for [RustaBase](https://rustabase.com/): one Rust backend, everything you need.**
 
-[![pub](https://img.shields.io/pub/v/rustabase_dart_sdk?color=0175c2&label=pub.dev)](https://pub.dev/packages/rustabase_dart_sdk)
+[![pub](https://img.shields.io/pub/v/rustabase?color=0175c2&label=pub.dev)](https://pub.dev/packages/rustabase)
 [![license](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
 [![JS SDK](https://img.shields.io/npm/v/rustabase?color=f97316&label=js%20sdk)](https://www.npmjs.com/package/rustabase)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-RustaBase-0a66c2?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rustabase)
@@ -20,15 +20,15 @@ This package is independently structured for RustaBase. Shared HTTP paths and pa
 ## Install
 
 ```sh
-dart pub add rustabase_dart_sdk
+dart pub add rustabase
 # or
-flutter pub add rustabase_dart_sdk
+flutter pub add rustabase
 ```
 
 ## Quick start
 
 ```dart
-import "package:rustabase_dart_sdk/rustabase.dart";
+import "package:rustabase/rustabase.dart";
 
 final rb = createClient("https://my-app.rustabase.net");
 
