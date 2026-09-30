@@ -27,9 +27,13 @@ class Table<T extends Row> extends Crud<T> {
     final row = await super.update(id, data, files: files, options: options);
     final current = rb.session.record;
     if (current?["id"] == row["id"] && _matches(current)) {
+      // The server may return a non-map "expand" value; never crash while
+      // syncing the signed-in record.
       final expand = {
-        ...(current?["expand"] as Map? ?? const {}),
-        ...(row["expand"] as Map? ?? const {}),
+        if (current?["expand"] is Map)
+          ...Map<String, dynamic>.from(current!["expand"] as Map),
+        if (row["expand"] is Map)
+          ...Map<String, dynamic>.from(row["expand"] as Map),
       };
       rb.session.set(rb.session.token, {...?current, ...row, "expand": expand});
     }
@@ -148,6 +152,7 @@ class AuthTable<T extends Row> extends Table<T> {
     List<String> scopes = const [],
     Json createData = const {},
     ReadOptions options = const ReadOptions(),
+    Duration timeout = const Duration(minutes: 5),
   }) async {
     final available = await methods();
     final oauth = available["oauth2"] as Map? ?? const {};
@@ -165,6 +170,7 @@ class AuthTable<T extends Row> extends Table<T> {
     final selectedProvider = match;
     final live = Realtime(rb);
     final completer = Completer<AuthResult<T>>();
+    Timer? watchdog;
     try {
       await live.subscribe("@oauth2", (event) async {
         try {
@@ -187,8 +193,18 @@ class AuthTable<T extends Row> extends Table<T> {
         } catch (error) {
           completer.completeError(RustaBaseError.from(error));
         } finally {
+          watchdog?.cancel();
           live.disconnect();
         }
+      });
+      // Without the provider callback the future would hang forever and the
+      // realtime connection would leak; the watchdog ends both.
+      watchdog = Timer(timeout, () {
+        if (completer.isCompleted) return;
+        live.disconnect();
+        completer.completeError(
+          RustaBaseError(message: "The sign-in flow didn't complete in time."),
+        );
       });
       final authUrl = Uri.parse(
         "${selectedProvider["authURL"]}${Uri.encodeComponent(rb.url('/api/oauth2-redirect'))}",
@@ -203,6 +219,7 @@ class AuthTable<T extends Row> extends Table<T> {
         ),
       );
     } catch (error) {
+      watchdog?.cancel();
       live.disconnect();
       if (!completer.isCompleted)
         completer.completeError(RustaBaseError.from(error));

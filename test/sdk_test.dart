@@ -262,3 +262,63 @@ void main() {
       );
       expect(rb.realtime.isConnected, false);
     });
+
+    test("updating the signed-in record tolerates a non-map expand", () async {
+      final session = MemorySession()
+        ..set(
+          token({"exp": 4102444800}),
+          {"id": "u1", "collectionName": "users"},
+        );
+      final rb = createClient(
+        "https://example.test",
+        session: session,
+        httpClientFactory: () => MockClient(
+          (_) async => http.Response(
+            '{"id":"u1","name":"New","expand":"oops"}',
+            200,
+          ),
+        ),
+      );
+      await rb.auth("users").update("u1", {"name": "New"});
+      expect(rb.session.record?["name"], "New");
+      // The non-map expand is dropped instead of crashing the update.
+      expect(rb.session.record?["expand"], <String, dynamic>{});
+    });
+
+    test("OAuth sign-in times out instead of hanging forever", () async {
+      final sse = StreamController<List<int>>();
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient.streaming((request, body) async {
+          if (request.method == "GET" &&
+              request.url.path.endsWith("/api/realtime")) {
+            return http.StreamedResponse(sse.stream, 200);
+          }
+          if (request.url.path.endsWith("auth-methods")) {
+            return http.StreamedResponse(
+              Stream.value(utf8.encode(
+                '{"oauth2":{"providers":[{"name":"google",'
+                '"authURL":"https://accounts.google.com/o/oauth2/auth"}]}}',
+              )),
+              200,
+              headers: {"content-type": "application/json"},
+            );
+          }
+          return http.StreamedResponse(
+            Stream.value(utf8.encode("{}")),
+            200,
+            headers: {"content-type": "application/json"},
+          );
+        }),
+      );
+      addTearDown(sse.close);
+      sse.add(utf8.encode("event: RB_CONNECT\nid: client1\ndata: {}\n\n"));
+      await expectLater(
+        rb.auth().signInWithOAuth(
+              provider: "google",
+              openUrl: (_) async {},
+              timeout: const Duration(milliseconds: 50),
+            ),
+        throwsA(isA<RustaBaseError>()),
+      );
+    });
