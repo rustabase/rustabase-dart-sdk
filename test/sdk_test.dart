@@ -322,3 +322,15 @@ void main() {
         throwsA(isA<RustaBaseError>()),
       );
     });
+
+    test(
+        "restoring a session with a corrupt payload clears instead of crashing",
+        () {
+      final session = AsyncSession(
+        initial: '{"token":123}',
+        save: (_) async {},
+      );
+      expect(session.token, "");
+    });
+  });
+}

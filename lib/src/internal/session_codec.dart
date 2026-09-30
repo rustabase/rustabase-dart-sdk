@@ -44,8 +44,15 @@ class SessionSnapshot {
     if (decoded is! Map) {
       throw const FormatException("Session data must be a JSON object.");
     }
+    final token = decoded["token"];
+    if (token is! String) {
+      // Corrupt stored data (e.g. a non-string token) must surface as a
+      // FormatException so callers can fall back to a cleared session
+      // instead of crashing with a cast error.
+      throw const FormatException("Session token must be a string.");
+    }
     return SessionSnapshot(
-      token: decoded["token"] as String? ?? "",
+      token: token,
       record: decoded["record"] is Map
           ? Map<String, dynamic>.from(decoded["record"] as Map)
           : null,
