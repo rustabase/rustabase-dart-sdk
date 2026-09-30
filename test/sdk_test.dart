@@ -2,7 +2,7 @@ import "dart:convert";
 
 import "package:http/http.dart" as http;
 import "package:http/testing.dart";
-import "package:rustabase_dart_sdk/rustabase.dart";
+import "package:rustabase/rustabase.dart";
 import "package:test/test.dart";
 
 String token(Map<String, dynamic> claims) =>
