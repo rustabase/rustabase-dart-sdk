@@ -1,4 +1,4 @@
-import "package:rustabase_dart_sdk/rustabase.dart";
+import "package:rustabase/rustabase.dart";
 
 Future<void> main() async {
   final rb = createClient("https://my-app.rustabase.net");
