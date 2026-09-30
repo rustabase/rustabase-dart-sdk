@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:convert";
 
 import "package:http/http.dart" as http;
@@ -244,5 +245,20 @@ void main() {
       session.loadCookie("rb_session=%E0%A4%A");
       expect(session.token, "");
     });
-  });
-}
+
+    test("a failed realtime connect surfaces as a RustaBaseError", () async {
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient.streaming(
+          (request, bodyStream) async => http.StreamedResponse(
+            Stream.value(utf8.encode("nope")),
+            500,
+          ),
+        ),
+      );
+      await expectLater(
+        rb.realtime.subscribe("posts/*", (_) {}),
+        throwsA(isA<RustaBaseError>()),
+      );
+      expect(rb.realtime.isConnected, false);
+    });

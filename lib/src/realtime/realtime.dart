@@ -126,12 +126,30 @@ class Realtime {
             if (event == rbConnect) {
               clientId = id;
               _retries = 0;
-              await _sync();
+              try {
+                await _sync();
+              } catch (error) {
+                // A failed initial sync must surface as a connect error and
+                // enter the retry loop, not escape as an unhandled async
+                // error inside the stream listener.
+                await _teardown();
+                if (!ready.isCompleted) {
+                  ready.completeError(RustaBaseError.from(error));
+                }
+                _retry();
+                return;
+              }
               if (!ready.isCompleted) ready.complete();
             }
             for (final callback in List<RealtimeCallback>.from(
               _topics[event] ?? const [],
-            )) callback(payload);
+            )) {
+              try {
+                callback(payload);
+              } catch (_) {
+                // A throwing subscriber must not kill the event stream.
+              }
+            }
             event = "";
             id = "";
             data.clear();
@@ -167,19 +185,23 @@ class Realtime {
             throw RustaBaseError(message: "The live connection timed out."),
       );
     } catch (error) {
-      _stream = null;
-      _client?.close();
-      _client = null;
+      await _teardown();
       throw RustaBaseError.from(error);
     }
   }
 
+  /// Cancels the SSE subscription and closes the underlying client so a
+  /// failed or replaced connection never keeps reading in the background.
+  Future<void> _teardown() async {
+    await _stream?.cancel();
+    _stream = null;
+    _client?.close();
+    _client = null;
+  }
+
   Future<void> _sync() async {
     if (_topics.isEmpty) {
-      _stream?.cancel();
-      _client?.close();
-      _stream = null;
-      _client = null;
+      await _teardown();
       clientId = "";
       return;
     }
