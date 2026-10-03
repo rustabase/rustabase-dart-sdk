@@ -29,9 +29,8 @@ List<String> _words(String name) =>
 
 /// `blog_posts` -> `BlogPosts`.
 String pascalCase(String name) {
-  final out = _words(
-    name,
-  ).map((w) => w[0].toUpperCase() + w.substring(1)).join();
+  final out =
+      _words(name).map((w) => w[0].toUpperCase() + w.substring(1)).join();
   if (out.isEmpty) return "Table";
   return RegExp(r"^[0-9]").hasMatch(out) ? "T$out" : out;
 }
@@ -46,10 +45,8 @@ String camelCase(String name) {
 
 /// A Dart string literal holding [s].
 String _lit(String s) {
-  final body = s
-      .replaceAll(r"\", r"\\")
-      .replaceAll('"', r'\"')
-      .replaceAll(r"$", r"\$");
+  final body =
+      s.replaceAll(r"\", r"\\").replaceAll('"', r'\"').replaceAll(r"$", r"\$");
   return '"$body"';
 }
 
@@ -95,9 +92,9 @@ _Col _column(Map<String, dynamic> f) {
 
 List<Map<String, dynamic>> _maps(Object? list) => list is List
     ? list
-          .whereType<Map<dynamic, dynamic>>()
-          .map((m) => m.cast<String, dynamic>())
-          .toList()
+        .whereType<Map<dynamic, dynamic>>()
+        .map((m) => m.cast<String, dynamic>())
+        .toList()
     : const [];
 
 /// Generates the Dart source for [collections]. System tables are skipped
@@ -106,14 +103,12 @@ String generateDartTypes(
   List<dynamic> collections, {
   bool includeSystem = false,
 }) {
-  final list =
-      _maps(collections)
-          .where(
-            (c) =>
-                c["name"] is String && (includeSystem || c["system"] != true),
-          )
-          .toList()
-        ..sort((a, b) => (a["name"] as String).compareTo(b["name"] as String));
+  final list = _maps(collections)
+      .where(
+        (c) => c["name"] is String && (includeSystem || c["system"] != true),
+      )
+      .toList()
+    ..sort((a, b) => (a["name"] as String).compareTo(b["name"] as String));
 
   final b = StringBuffer()
     ..writeln(

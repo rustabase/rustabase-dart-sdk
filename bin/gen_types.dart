@@ -124,9 +124,8 @@ Future<void> main(List<String> argv) async {
     final file = File(out);
     await file.parent.create(recursive: true);
     await file.writeAsString(src);
-    final n = schema
-        .where((c) => system || (c is Map && c["system"] != true))
-        .length;
+    final n =
+        schema.where((c) => system || (c is Map && c["system"] != true)).length;
     stderr.writeln("Wrote classes for $n table(s) to $out");
   } catch (e) {
     stderr.writeln("rustabase: $e");
