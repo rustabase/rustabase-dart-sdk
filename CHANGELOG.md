@@ -1,3 +1,9 @@
+## 1.1.0
+
+- Added `dart run rustabase:gen_types`: generates Dart model classes
+  (`fromJson`, `toJson`, `tableName`) from your schema.
+- Added `package:rustabase/codegen.dart` for using the generator from build scripts.
+
 ## 1.0.1
 
 - Hardened realtime: a failed connect or initial sync now surfaces as a

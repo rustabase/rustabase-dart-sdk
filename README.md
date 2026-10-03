@@ -142,3 +142,27 @@ Superuser tools are grouped under `rb.admin`: `collections`, `settings`, `logs`,
 ## License
 
 MIT © RustaBase contributors
+
+## Generated types
+
+Generate Dart model classes for your tables with one command (needs a superuser):
+
+```sh
+dart run rustabase:gen_types --url https://api.example.com --email admin@example.com --password '...'
+# or from an exported schema file
+dart run rustabase:gen_types --file schema.json --out lib/rustabase_types.dart
+```
+
+`RUSTABASE_URL`, `RUSTABASE_TOKEN`, `RUSTABASE_EMAIL` and `RUSTABASE_PASSWORD`
+can be used instead of flags. Each table becomes a class with `fromJson`,
+`toJson` and `tableName`:
+
+```dart
+import "rustabase_types.dart";
+
+final page = await rb.from(Posts.tableName).list();
+final posts = page.items.map(Posts.fromJson).toList();
+```
+
+Run the command again whenever your tables change. Password and hidden
+columns are never generated.
