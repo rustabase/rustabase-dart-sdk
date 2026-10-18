@@ -178,6 +178,27 @@ void main() {
   });
 
   group("fixes", () {
+    test("timeout fails slow requests with a RustaBaseError", () async {
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient((_) async {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          return http.Response("{}", 200);
+        }),
+      );
+      await expectLater(
+        rb.request<Json>(
+          "/slow",
+          options: const RequestOptions(timeout: Duration(milliseconds: 20)),
+        ),
+        throwsA(
+          isA<RustaBaseError>()
+              .having((e) => e.cause, "cause", isA<TimeoutException>())
+              .having((e) => e.resolvedMessage, "message", contains("20ms")),
+        ),
+      );
+    });
+
     test("cookie Expires uses the HTTP date format", () {
       final session = MemorySession()
         ..set(token({"exp": 4102444800}), {"id": "u1"});

@@ -143,13 +143,25 @@ class RustaBase {
         : null;
     final requestId = key == null ? null : _requests.begin(key);
     try {
-      final exchange = await _http.execute(
+      var pending = _http.execute(
         uri: details.url,
         method: details.method,
         headers: details.headers,
         body: details.body,
         files: details.files,
       );
+      final timeout = options.timeout;
+      if (timeout != null) {
+        pending = pending.timeout(
+          timeout,
+          onTimeout: () => throw RustaBaseError(
+            url: details.url.toString(),
+            message: "The request timed out after ${timeout.inMilliseconds}ms.",
+            cause: TimeoutException("Request timed out", timeout),
+          ),
+        );
+      }
+      final exchange = await pending;
       var data = await onResponse?.call(exchange.response, exchange.data) ??
           exchange.data;
       if (key != null && requestId != null && !_requests.owns(key, requestId))

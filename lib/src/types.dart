@@ -13,6 +13,7 @@ class RequestOptions {
     this.method,
     this.requestKey,
     this.autoCancel = true,
+    this.timeout,
   });
 
   final Json query;
@@ -23,6 +24,9 @@ class RequestOptions {
   final String? requestKey;
   final bool autoCancel;
 
+  /// Fails the request with a [RustaBaseError] when no response arrives in time.
+  final Duration? timeout;
+
   RequestOptions copyWith({
     Json? query,
     Map<String, String>? headers,
@@ -31,6 +35,7 @@ class RequestOptions {
     String? method,
     String? requestKey,
     bool? autoCancel,
+    Duration? timeout,
   }) =>
       RequestOptions(
         query: query ?? this.query,
@@ -40,6 +45,7 @@ class RequestOptions {
         method: method ?? this.method,
         requestKey: requestKey ?? this.requestKey,
         autoCancel: autoCancel ?? this.autoCancel,
+        timeout: timeout ?? this.timeout,
       );
 }
 
