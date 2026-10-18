@@ -178,6 +178,28 @@ void main() {
   });
 
   group("fixes", () {
+    test("plain-text error bodies become the error message", () async {
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient(
+          (_) async => http.Response(
+            "<html><h1>502 Bad Gateway</h1>  upstream down</html>",
+            502,
+          ),
+        ),
+      );
+      await expectLater(
+        rb.request<Json>("/x"),
+        throwsA(
+          isA<RustaBaseError>().having((e) => e.status, "status", 502).having(
+                (e) => e.resolvedMessage,
+                "message",
+                "502 Bad Gateway upstream down",
+              ),
+        ),
+      );
+    });
+
     test("parallel requests share a single keep-alive refresh", () async {
       final session = MemorySession()
         ..set(token({"exp": 1}), {"id": "u1", "collectionId": "c"});

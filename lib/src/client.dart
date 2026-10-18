@@ -177,9 +177,7 @@ class RustaBase {
             ? Map<String, dynamic>.from(data)
             : <String, dynamic>{
                 "code": exchange.status,
-                "message": exchange.reason.isEmpty
-                    ? "Request failed."
-                    : exchange.reason,
+                "message": _plainMessage(data, exchange.reason),
                 "data": <String, dynamic>{},
               };
         throw RustaBaseError(
@@ -194,6 +192,21 @@ class RustaBase {
     } finally {
       if (key != null && requestId != null) _requests.finish(key, requestId);
     }
+  }
+
+  /// Proxies often answer errors with plain text or HTML; keep a short,
+  /// readable excerpt instead of discarding it.
+  static String _plainMessage(Object? body, String reason) {
+    final text = body is String
+        ? body
+            .replaceAll(RegExp(r"<[^>]*>"), " ")
+            .replaceAll(RegExp(r"\s+"), " ")
+            .trim()
+        : "";
+    if (text.isNotEmpty) {
+      return text.length > 200 ? "${text.substring(0, 200)}…" : text;
+    }
+    return reason.isEmpty ? "Request failed." : reason;
   }
 
   void setKeepAlive(int? leeway, Future<Object?> Function() run) {
