@@ -72,6 +72,9 @@ class RustaBase {
   bool autoCancel;
   final bool reuseHttpClient;
   final http.Client Function() httpClientFactory;
+
+  /// Base delay between retry attempts (see [RequestOptions.retry]).
+  Duration retryDelay = const Duration(milliseconds: 300);
   RequestHook? onRequest;
   ResponseHook? onResponse;
   late final Realtime realtime;
@@ -149,25 +152,44 @@ class RustaBase {
         : null;
     final requestId = key == null ? null : _requests.begin(key);
     try {
-      var pending = _http.execute(
-        uri: details.url,
-        method: details.method,
-        headers: details.headers,
-        body: details.body,
-        files: details.files,
-      );
-      final timeout = options.timeout;
-      if (timeout != null) {
-        pending = pending.timeout(
-          timeout,
-          onTimeout: () => throw RustaBaseError(
-            url: details.url.toString(),
-            message: "The request timed out after ${timeout.inMilliseconds}ms.",
-            cause: TimeoutException("Request timed out", timeout),
-          ),
-        );
+      final retries = details.method == "GET" || details.method == "HEAD"
+          ? (options.retry < 0 ? 0 : options.retry)
+          : 0;
+      late HttpExchange exchange;
+      for (var attempt = 0;; attempt++) {
+        try {
+          var pending = _http.execute(
+            uri: details.url,
+            method: details.method,
+            headers: details.headers,
+            body: details.body,
+            files: details.files,
+          );
+          final timeout = options.timeout;
+          if (timeout != null) {
+            pending = pending.timeout(
+              timeout,
+              onTimeout: () => throw RustaBaseError(
+                url: details.url.toString(),
+                message:
+                    "The request timed out after ${timeout.inMilliseconds}ms.",
+                cause: TimeoutException("Request timed out", timeout),
+              ),
+            );
+          }
+          exchange = await pending;
+        } catch (error) {
+          final cancelled = key != null &&
+              requestId != null &&
+              !_requests.owns(key, requestId);
+          if (attempt >= retries || cancelled) rethrow;
+          await Future<void>.delayed(retryDelay * (attempt + 1));
+          continue;
+        }
+        if (attempt >= retries ||
+            !const {502, 503, 504}.contains(exchange.status)) break;
+        await Future<void>.delayed(retryDelay * (attempt + 1));
       }
-      final exchange = await pending;
       var data = await onResponse?.call(exchange.response, exchange.data) ??
           exchange.data;
       if (key != null && requestId != null && !_requests.owns(key, requestId))

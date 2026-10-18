@@ -127,6 +127,8 @@ rb.onResponse = (response, data) => data;
 
 Duplicate requests use newest-request-wins semantics by default. Pass `RequestOptions(autoCancel: false)`, disable `rb.autoCancel`, or call `rb.cancel(key)` / `rb.cancelAll()`.
 
+Slow or flaky networks: `RequestOptions(timeout: Duration(seconds: 10), retry: 2)` fails after the timeout and retries GET/HEAD requests on network errors and 502/503/504 responses. Writes are never retried.
+
 ## Admin
 
 Superuser tools are grouped under `rb.admin`: `collections`, `settings`, `logs`, `backups`, `crons`, `apiKeys`, `webhooks`, `functions`, `rls`, and `sql()`.

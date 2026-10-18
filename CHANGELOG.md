@@ -1,3 +1,15 @@
+## 1.2.0
+
+- Added `RequestOptions(timeout: ...)`: slow requests fail with a
+  `RustaBaseError` whose `cause` is a `TimeoutException`.
+- Added `RequestOptions(retry: n)`: GET/HEAD requests retry network errors
+  and 502/503/504 responses with a growing delay (`rb.retryDelay`).
+  Writes are never retried.
+- Parallel requests now share one keep-alive token refresh instead of each
+  spending the same refresh token.
+- Plain-text and HTML error bodies (for example from proxies) now become a
+  readable error message instead of only the HTTP reason phrase.
+
 ## 1.1.0
 
 - Added `dart run rustabase:gen_types`: generates Dart model classes

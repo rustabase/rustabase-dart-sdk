@@ -178,6 +178,35 @@ void main() {
   });
 
   group("fixes", () {
+    test("GET retries transient failures but writes do not", () async {
+      var calls = 0;
+      final rb = createClient(
+        "https://example.test",
+        httpClientFactory: () => MockClient((_) async {
+          calls++;
+          return calls < 3
+              ? http.Response("busy", 503)
+              : http.Response('{"ok":true}', 200);
+        }),
+      )..retryDelay = Duration.zero;
+      final result = await rb.request<Json>(
+        "/x",
+        options: const RequestOptions(retry: 2),
+      );
+      expect(result["ok"], true);
+      expect(calls, 3);
+
+      calls = 0;
+      await expectLater(
+        rb.request<Json>(
+          "/x",
+          options: const RequestOptions(method: "POST", retry: 2),
+        ),
+        throwsA(isA<RustaBaseError>()),
+      );
+      expect(calls, 1);
+    });
+
     test("plain-text error bodies become the error message", () async {
       final rb = createClient(
         "https://example.test",

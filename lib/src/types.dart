@@ -14,6 +14,7 @@ class RequestOptions {
     this.requestKey,
     this.autoCancel = true,
     this.timeout,
+    this.retry = 0,
   });
 
   final Json query;
@@ -27,6 +28,10 @@ class RequestOptions {
   /// Fails the request with a [RustaBaseError] when no response arrives in time.
   final Duration? timeout;
 
+  /// Extra attempts for GET/HEAD requests after a network error or a
+  /// 502/503/504 response, with a short growing delay. Writes never retry.
+  final int retry;
+
   RequestOptions copyWith({
     Json? query,
     Map<String, String>? headers,
@@ -36,6 +41,7 @@ class RequestOptions {
     String? requestKey,
     bool? autoCancel,
     Duration? timeout,
+    int? retry,
   }) =>
       RequestOptions(
         query: query ?? this.query,
@@ -46,6 +52,7 @@ class RequestOptions {
         requestKey: requestKey ?? this.requestKey,
         autoCancel: autoCancel ?? this.autoCancel,
         timeout: timeout ?? this.timeout,
+        retry: retry ?? this.retry,
       );
 }
 
