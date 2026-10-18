@@ -178,6 +178,26 @@ void main() {
   });
 
   group("fixes", () {
+    test("parallel requests share a single keep-alive refresh", () async {
+      final session = MemorySession()
+        ..set(token({"exp": 1}), {"id": "u1", "collectionId": "c"});
+      final rb = createClient(
+        "https://example.test",
+        session: session,
+        autoCancel: false,
+        httpClientFactory: () =>
+            MockClient((_) async => http.Response("{}", 200)),
+      );
+      var refreshes = 0;
+      rb.setKeepAlive(60, () async {
+        refreshes++;
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        return null;
+      });
+      await Future.wait([rb.request<Json>("/a"), rb.request<Json>("/b")]);
+      expect(refreshes, 1);
+    });
+
     test("timeout fails slow requests with a RustaBaseError", () async {
       final rb = createClient(
         "https://example.test",

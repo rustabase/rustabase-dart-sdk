@@ -82,6 +82,7 @@ class RustaBase {
   late final HttpEngine _http;
   int? _keepAliveLeeway;
   Future<Object?> Function()? _keepAliveRun;
+  Future<void>? _keepAliveRefresh;
   StreamSubscription<SessionEvent>? _keepAliveSubscription;
 
   Table<T> from<T extends Row>(String collection) =>
@@ -118,10 +119,15 @@ class RustaBase {
     if (_keepAliveRun != null &&
         session.token.isNotEmpty &&
         tokenExpired(session.token, _keepAliveLeeway ?? 0)) {
-      try {
-        final refresh = _keepAliveRun;
-        if (refresh != null) await refresh();
-      } catch (_) {}
+      final refresh = _keepAliveRun;
+      if (refresh != null) {
+        // Parallel requests share one refresh instead of each spending the
+        // same refresh token.
+        final inFlight = _keepAliveRefresh ??= Future.sync(refresh)
+            .then<void>((_) {}, onError: (Object _) {})
+            .whenComplete(() => _keepAliveRefresh = null);
+        await inFlight;
+      }
     }
     final method = (options.method ?? "GET").toUpperCase();
     final headers = Map<String, String>.from(options.headers);
