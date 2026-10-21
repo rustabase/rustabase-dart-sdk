@@ -32,7 +32,15 @@ String toQueryString(Map<String, dynamic>? query) {
 String withQuery(String url, Map<String, dynamic>? query) {
   final encoded = toQueryString(query);
   if (encoded.isEmpty) return url;
-  return "$url${url.contains('?') ? '&' : '?'}$encoded";
+  final fragmentIndex = url.indexOf("#");
+  final base = fragmentIndex < 0 ? url : url.substring(0, fragmentIndex);
+  final fragment = fragmentIndex < 0 ? "" : url.substring(fragmentIndex);
+  final separator = !base.contains("?")
+      ? "?"
+      : base.endsWith("?") || base.endsWith("&")
+          ? ""
+          : "&";
+  return "$base$separator$encoded$fragment";
 }
 
 String bindFilter(String expression, [Map<String, dynamic>? params]) {
