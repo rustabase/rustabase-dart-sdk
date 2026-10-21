@@ -39,9 +39,17 @@ Map<String, String> _parse(List<String> argv) {
     } else if (a.startsWith("--")) {
       final eq = a.indexOf("=");
       if (eq > 0) {
-        out[a.substring(2, eq)] = a.substring(eq + 1);
-      } else if (i + 1 < argv.length) {
+        final value = a.substring(eq + 1);
+        if (value.isEmpty) {
+          throw FormatException("missing value for ${a.substring(0, eq)}");
+        }
+        out[a.substring(2, eq)] = value;
+      } else if (i + 1 < argv.length &&
+          !argv[i + 1].startsWith("--") &&
+          argv[i + 1] != "-h") {
         out[a.substring(2)] = argv[++i];
+      } else {
+        throw FormatException("missing value for $a");
       }
     }
   }
@@ -107,12 +115,12 @@ Future<List<dynamic>> _schema(Map<String, String> args) async {
 }
 
 Future<void> main(List<String> argv) async {
-  final args = _parse(argv);
-  if (args["help"] != null) {
-    stdout.write(_help);
-    return;
-  }
   try {
+    final args = _parse(argv);
+    if (args["help"] != null) {
+      stdout.write(_help);
+      return;
+    }
     final schema = await _schema(args);
     final system = args["include-system"] != null;
     final src = generateDartTypes(schema, includeSystem: system);
