@@ -1,3 +1,10 @@
+## 1.2.1
+
+- Type-generation CLI rejects missing or empty option values without consuming
+  the next option; inline values containing `=` and stdout output remain supported.
+- Request query parameters are appended before URL fragments and no longer add
+  redundant separators to URLs ending with `?` or `&`.
+
 ## 1.2.0
 
 - Added `RequestOptions(timeout: ...)`: slow requests fail with a
