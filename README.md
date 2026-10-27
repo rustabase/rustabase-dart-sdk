@@ -5,7 +5,7 @@
 **Official Dart & Flutter client for [RustaBase](https://rustabase.com/): one Rust backend, everything you need.**
 
 [![pub](https://img.shields.io/pub/v/rustabase?color=0175c2&label=pub.dev)](https://pub.dev/packages/rustabase)
-[![license](https://img.shields.io/badge/license-MIT-22c55e)](LICENSE)
+[![license](https://img.shields.io/badge/license-Apache_2.0-22c55e)](LICENSE)
 [![JS SDK](https://img.shields.io/npm/v/rustabase?color=f97316&label=js%20sdk)](https://www.npmjs.com/package/rustabase)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-RustaBase-0a66c2?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rustabase)
 
@@ -143,7 +143,7 @@ Superuser tools are grouped under `rb.admin`: `collections`, `settings`, `logs`,
 
 ## License
 
-MIT © RustaBase contributors
+Apache License 2.0 © RustaBase contributors
 
 ## Generated types
 
